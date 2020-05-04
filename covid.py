@@ -1,6 +1,8 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+import datetime
+from matplotlib.dates import DayLocator, MonthLocator, DateFormatter, drange
 import matplotlib.patches as patches
 from matplotlib.ticker import MaxNLocator
 from astropy import units as u
@@ -51,6 +53,7 @@ for i in range(256):
     s = t[i]
     # print("t=", s.shape, s.ndim, s.size, s.values[1], s.values[4:])
     region = "{}".format(s.values[1])
+    axes = s.axes
     if region == "Italy":
         # we consider data only when values reach at least 100
         # and then we re-scale x from the date when reached 100
@@ -63,7 +66,32 @@ for i in range(256):
 
         break
 
+
+
 xlabel = "day from first 100 of Italy"
+
+def date_split(d):
+    return [int(de) for de in d.split('/')]
+
+def date_cnv(d):
+    ds = date_split(d)
+    r = datetime.datetime(2000+ds[2], ds[0], ds[1])
+    return r
+
+def plot_data(title, region, axe, dates, y):
+    axe.set(title=title)
+    axe.set(xlabel="day from first 100 of Italy")
+    axe.xaxis.set_major_locator(MonthLocator())
+
+    locator = DayLocator(range(0, 31, 1))
+    locator.MAXTICKS = 400
+    axe.xaxis.set_minor_locator(locator)
+
+    axe.xaxis.set_major_formatter(DateFormatter('%B'))
+    axe.fmt_xdata = DateFormatter('%B')
+    axe.plot_date(dates, y, label=region, ls='-', marker='.', ms=1)
+    # axe.plot_date(dates, y, label="aaa")
+
 
 N = 0
 for i in range(256):
@@ -89,6 +117,11 @@ for i in range(256):
     """
     start = first_start
 
+    axes = s.axes[0]
+    all_dates = [date_cnv(d) for d in axes[start:]]
+    delta = datetime.timedelta(days=1)
+    dates = drange(all_dates[0], all_dates[-1]+delta, delta)
+
     try:
         values = np.array([np.float(v) for v in s.values[start:]], np.float)
         print("values shape=", values.shape)
@@ -106,25 +139,17 @@ for i in range(256):
 
         yfit = fit_model(x, y)
 
-        p0.set(title='absolute data')
-        p0.set(xlabel=xlabel)
-        p0.plot(yfit, label=region)
+        plot_data("absolute data", region, p0, dates, yfit)
 
         # first derivative
         xfirst, yfirst = derivative(x, y)
         yfit = fit_model(xfirst, yfirst)
-
-        p1.set(title='first derivative')
-        p1.set(xlabel=xlabel)
-        p1.plot(yfit, label=region)
+        plot_data('first derivative', region, p1, dates[:-1], yfit)
 
         # second derivative
         xsecond, ysecond = derivative(xfirst, yfirst)
         yfit = fit_model(xsecond, ysecond)
-
-        p2.set(title='second derivative')
-        p2.set(xlabel=xlabel)
-        p2.plot(yfit, label=region)
+        plot_data('second derivative', region, p2, dates[:-2], yfit)
 
         # raw data
         x = np.array(range(start, start + len(values)))
@@ -132,26 +157,17 @@ for i in range(256):
         y = np.array([float(v) / float(m) for v in values])
 
         yfit = fit_model(x, y)
-
-        p3.set(title='scaled data')
-        p3.set(xlabel=xlabel)
-        p3.plot(yfit, label=region)
+        plot_data('scaled data', region, p3, dates, yfit)
 
         # first derivative
         xfirst, yfirst = derivative(x, y)
         yfit = fit_model(xfirst, yfirst)
-
-        p4.set(title='first derivative')
-        p4.set(xlabel=xlabel)
-        p4.plot(yfit, label=region)
+        plot_data('first derivative', region, p4, dates[:-1], yfit)
 
         # second derivative
         xsecond, ysecond = derivative(xfirst, yfirst)
         yfit = fit_model(xsecond, ysecond)
-
-        p5.set(title='second derivative')
-        p5.set(xlabel=xlabel)
-        p5.plot(yfit, label=region)
+        plot_data('second derivative', region, p5, dates[:-2], yfit)
 
     except:
         print("?")
