@@ -10,15 +10,41 @@ from astropy.coordinates import SkyCoord
 import pandas
 from scipy.optimize import curve_fit
 
-def model(x, a, b, c, d, e):
+def model1(x, a, b, c, d, e):
     return a + b*x + c*x*x + d*x*x*x + e*x*x*x*x
 
 
-def fit_model(x, y):
-    fit, params = curve_fit(model, x, y)
+def model2(x, scale, mean, sigma):
+    try:
+        # a = 1.0/(sigma*np.sqrt(2 * np.pi))
+        x2 = (x - mean)/sigma
+        x3 = np.power(x2, 2)
+        y = scale*np.exp(-x3/2)
+        return y
+    except:
+        print("???")
+
+
+
+def fit_model1(x, y):
+    fit, params = curve_fit(model1, x, y)
     a, b, c, d, e = fit[0], fit[1], fit[2], fit[3], fit[4]
-    yfit = model(x, a, b, c, d, e)
+    yfit = model1(x, a, b, c, d, e)
     return yfit
+
+
+def fit_model2(x, y):
+    scale = max(y)
+    mean = 100.0
+    sigma = 30.0
+    fit, params = curve_fit(model2, x, y, scale, mean, sigma)
+    scale, mean, sigma = fit[0], fit[1], fit[2]
+    yfit = model2(x, scale, mean, sigma)
+    return yfit
+
+
+def fit_model(x, y):
+    return fit_model1(x, y)
 
 
 def derivative(x, y):
@@ -134,9 +160,17 @@ for i in range(256):
         # raw data
         x = np.array(range(start, start + len(values)))
         print(region, "m=", m, " start=", start, "last=", start + len(values))
-        #y = np.array([float(v) / float(m) for v in values])
-        y = np.array([float(v) for v in values])
+        # y = np.array([float(v) / float(m) for v in values])
+        vv = [float(v) for v in values]
+        y = np.array(vv)
+        scale = np.max(y)
+        mean = 110
+        sigma = 20
 
+        # y = model2(x, scale, mean, sigma)
+        # plot_data("absolute data", region, p0, dates, y)
+        # plt.show()
+        # exit()
         yfit = fit_model(x, y)
 
         plot_data("absolute data", region, p0, dates, yfit)
